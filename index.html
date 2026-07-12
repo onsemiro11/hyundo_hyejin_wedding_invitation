@@ -313,7 +313,7 @@
       저희 두 사람에게는 가장 귀한 선물이 됩니다.<br>
       예식에서 찍어주신 사진과 영상을 나눠주세요.
     </p>
-    <button class="moments-btn" onclick="document.getElementById('momentInput').click()">사진 · 영상 공유하기</button>
+    <button class="moments-btn" onclick="shareMoments()">사진 · 영상 공유하기</button>
     <input type="file" id="momentInput" accept="image/*,video/*" multiple hidden>
   </section>
 
@@ -387,13 +387,17 @@
 /* ================= 설정 (여기만 바꾸면 됨) ================= */
 const WEDDING_AT = new Date('2027-12-08T15:00:00+09:00');
 const GROOM_TEL = '01000000000';
-const PHOTOS = {            // 실제 사진 준비되면 경로만 교체
+const PHOTOS = {            // repo의 photos/ 폴더에 같은 이름으로 넣으면 자동 표시
   cover: 'photos/main.jpg',
   groom: 'photos/groom.jpg',
-  bride: 'photos/bride.jpg',
-  gallery: []               // 예: ['photos/g1.jpg', 'photos/g2.jpg', ...]
+  bride: 'photos/bride.jpg'
 };
+/* 갤러리: photos/gallery/1.jpg, 2.jpg ... 순번으로 넣으면 자동 인식 (최대 30장) */
+const GALLERY_DIR = 'photos/gallery/';
+const GALLERY_MAX = 30;
 const GALLERY_PREVIEW = 12; // 3열 x 4행
+/* 하객 사진 공유용 구글포토 공유앨범 링크 — 만들면 여기 붙여넣기 */
+const SHARED_ALBUM_URL = '';
 
 /* ============ 플레이스홀더 (사진 없을 때 자동 대체) ============ */
 function phSvg(txt, big){
@@ -451,18 +455,34 @@ function tick(){
 }
 tick(); setInterval(tick, 1000);
 
-/* ================= 갤러리 ================= */
-const gsrc = PHOTOS.gallery.length ? PHOTOS.gallery
-  : Array.from({length:16}, (_,i) => phSvg('PHOTO ' + (i+1)));
+/* ================= 갤러리 (photos/gallery/N.jpg 자동 탐색) ================= */
+let gsrc = [];
 const grid = document.getElementById('ggrid');
-gsrc.forEach((src,i) => {
-  const im = document.createElement('img');
-  im.src = src; im.alt = '갤러리 ' + (i+1); im.loading = 'lazy';
-  if (i < GALLERY_PREVIEW) im.classList.add('vis');
-  im.onclick = () => openLb(i);
-  grid.appendChild(im);
+function probe(i){
+  return new Promise(res => {
+    const im = new Image();
+    im.onload = () => res(GALLERY_DIR + i + '.jpg');
+    im.onerror = () => res(null);
+    im.src = GALLERY_DIR + i + '.jpg';
+  });
+}
+Promise.all(Array.from({length: GALLERY_MAX}, (_,i) => probe(i+1))).then(list => {
+  gsrc = list.filter(Boolean);
+  if (!gsrc.length) gsrc = Array.from({length:16}, (_,i) => phSvg('PHOTO ' + (i+1)));
+  buildGrid();
 });
-if (gsrc.length <= GALLERY_PREVIEW) document.getElementById('moreBtn').style.display = 'none';
+function buildGrid(){
+  grid.innerHTML = '';
+  gsrc.forEach((src,i) => {
+    const im = document.createElement('img');
+    im.src = src; im.alt = '갤러리 ' + (i+1); im.loading = 'lazy';
+    if (i < GALLERY_PREVIEW) im.classList.add('vis');
+    im.onclick = () => openLb(i);
+    grid.appendChild(im);
+  });
+  document.getElementById('moreBtn').style.display =
+    gsrc.length <= GALLERY_PREVIEW ? 'none' : '';
+}
 function showMore(){
   grid.querySelectorAll('img').forEach(im => im.classList.add('vis'));
   document.getElementById('moreBtn').style.display = 'none';
@@ -495,6 +515,10 @@ document.addEventListener('keydown', e => {
 });
 
 /* ================= Share Your Moments ================= */
+function shareMoments(){
+  if (SHARED_ALBUM_URL) { window.open(SHARED_ALBUM_URL, '_blank'); return; }
+  document.getElementById('momentInput').click();
+}
 document.getElementById('momentInput').addEventListener('change', async e => {
   const files = [...e.target.files];
   if (!files.length) return;
