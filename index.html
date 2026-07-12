@@ -143,9 +143,10 @@
   .acc-item .who{color:var(--sub);font-size:12px;margin-bottom:3px}
   .acc-btns{display:flex;gap:6px;margin-top:9px}
   .copy-btn{border:1px solid var(--line);background:#f6f1e8;border-radius:8px;font-size:11.5px;padding:7px 12px;color:var(--ink);flex-shrink:0}
-  .pay-btn{border:none;border-radius:8px;font-size:11.5px;padding:7px 12px;text-decoration:none;font-weight:700;cursor:pointer;font-family:inherit}
-  .pay-btn.toss{background:#3182f6;color:#fff}
-  .pay-btn.kakao{background:#fee500;color:#3d1e1e}
+  .pay-btn{display:inline-flex;align-items:center;gap:4px;border:none;border-radius:8px;font-size:11.5px;padding:6px 11px;text-decoration:none;font-weight:700;cursor:pointer;font-family:inherit}
+  .pay-btn svg{display:block}
+  .pay-btn.toss{background:#fff;border:1px solid #d4e2f7;color:#3182f6}
+  .pay-btn.kakao{background:#fee500;color:#111;font-weight:800}
 
   /* ===== 공유/QR ===== */
   .share-row{display:flex;gap:10px;justify-content:center}
@@ -576,6 +577,14 @@ const ACCOUNTS = {
     { who: '어머니 인00', bank: '하나', num: '000-000000-00000',  kakao: '' }
   ]
 };
+/* 토스 심볼(파란 두 갈래 렌즈) / 카카오페이(말풍선+pay) — SVG 재현 */
+const TOSS_ICON =
+  '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">' +
+  '<path d="M12.6 1.8c5 1.7 8.3 6.2 7.6 11.2-.1.6-.8.9-1.3.6-4.5-2.4-7-6.7-7-11.2 0-.5.3-.8.7-.6z" fill="#3182f6"/>' +
+  '<path d="M11.4 22.2c-5-1.7-8.3-6.2-7.6-11.2.1-.6.8-.9 1.3-.6 4.5 2.4 7 6.7 7 11.2 0 .5-.3.8-.7.6z" fill="#1b6ef3"/></svg>';
+const KPAY_ICON =
+  '<svg viewBox="0 0 24 24" width="13" height="13" aria-hidden="true">' +
+  '<path d="M12 3C6.5 3 2 6.5 2 10.8c0 2.8 1.9 5.2 4.7 6.6l-1 3.9c-.1.4.3.7.6.5l4.6-3.1c.4 0 .7.1 1.1.1 5.5 0 10-3.5 10-7.9C22 6.5 17.5 3 12 3z" fill="#111"/></svg>';
 for (const gid in ACCOUNTS){
   const list = document.querySelector('#' + gid + ' .acc-list');
   ACCOUNTS[gid].forEach(a => {
@@ -588,8 +597,8 @@ for (const gid in ACCOUNTS){
       '<div><p class="who"></p><p class="acct"></p></div>' +
       '<div class="acc-btns">' +
         '<button class="copy-btn">복사</button>' +
-        '<a class="pay-btn toss">toss 송금</a>' +
-        (a.kakao ? '<a class="pay-btn kakao" target="_blank" rel="noopener">kakaopay</a>' : '') +
+        '<a class="pay-btn toss">' + TOSS_ICON + 'toss</a>' +
+        (a.kakao ? '<a class="pay-btn kakao" target="_blank" rel="noopener">' + KPAY_ICON + 'pay</a>' : '') +
       '</div>';
     div.querySelector('.who').textContent = a.who;
     div.querySelector('.acct').textContent = full;
@@ -620,7 +629,7 @@ function showQr(){
   let W, H, flakes = [];
   function resize(){
     W = cv.width = innerWidth; H = cv.height = innerHeight;
-    const n = Math.min(130, Math.floor(W / 4.5));
+    const n = Math.min(105, Math.floor(W / 5.3));
     flakes = Array.from({length: n}, () => spawn(true));
   }
   function spawn(anyY){
