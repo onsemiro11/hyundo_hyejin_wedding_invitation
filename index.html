@@ -36,9 +36,22 @@
   .rsvp-info{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;font-size:13px;line-height:2;margin-bottom:20px;text-align:left}
   .rsvp-info span{margin-right:8px}
   .rsvp-main-btn{width:100%;border:none;background:var(--ink);color:#fdfaf5;font-size:14px;letter-spacing:.1em;padding:14px 0;border-radius:12px}
-  .rsvp-choice{display:none;gap:10px;margin-top:4px}
-  .rsvp-choice.on{display:flex}
+  .rsvp-form{display:none;text-align:left}
+  .rsvp-form.on{display:block}
+  .rsvp-form input[type=text],.rsvp-form input[type=number]{
+    width:100%;border:1px solid var(--line);background:var(--card);border-radius:10px;
+    padding:12px;font-family:inherit;font-size:13.5px;color:var(--ink);margin-bottom:10px;
+  }
+  .rsvp-side{display:flex;gap:8px;margin-bottom:10px}
+  .rsvp-side label{
+    flex:1;border:1px solid var(--line);background:var(--card);border-radius:10px;
+    padding:11px 0;text-align:center;font-size:13px;cursor:pointer;
+  }
+  .rsvp-side input{display:none}
+  .rsvp-side label:has(input:checked){background:var(--ink);color:#fdfaf5;border-color:var(--ink)}
+  .rsvp-choice{display:flex;gap:10px;margin-top:4px}
   .rsvp-choice button{flex:1;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:13px 0;font-size:13.5px;color:var(--ink)}
+  .rsvp-choice button.yes{background:var(--accent);color:#fff;border-color:var(--accent)}
   .rsvp-hide{background:none;border:none;color:#a99c8c;font-size:12px;margin-top:16px;padding:10px;text-decoration:underline;text-underline-offset:3px}
 
   /* ===== 커버 ===== */
@@ -155,9 +168,17 @@
         <p><span>&#128205;</span>웨딩홀</p>
       </div>
       <button class="rsvp-main-btn" id="rsvpMainBtn">참석 여부 알리기</button>
-      <div class="rsvp-choice" id="rsvpChoice">
-        <button onclick="sendRsvp(true)">참석할게요</button>
-        <button onclick="sendRsvp(false)">참석이 어려워요</button>
+      <div class="rsvp-form" id="rsvpForm">
+        <input type="text" id="rsvpName" placeholder="성함" maxlength="20">
+        <div class="rsvp-side">
+          <label><input type="radio" name="rsvpSide" value="신랑측" checked>신랑측</label>
+          <label><input type="radio" name="rsvpSide" value="신부측">신부측</label>
+        </div>
+        <input type="number" id="rsvpCount" min="1" max="20" value="1" placeholder="동행 포함 총 인원">
+        <div class="rsvp-choice">
+          <button class="yes" onclick="submitRsvp(true)">참석할게요</button>
+          <button onclick="submitRsvp(false)">참석이 어려워요</button>
+        </div>
       </div>
       <button class="rsvp-hide" id="rsvpHideBtn">오늘 하루 보지 않기</button>
     </div>
@@ -398,6 +419,8 @@ const GALLERY_MAX = 30;
 const GALLERY_PREVIEW = 12; // 3열 x 4행
 /* 하객 사진 공유용 구글포토 공유앨범 링크 — 만들면 여기 붙여넣기 */
 const SHARED_ALBUM_URL = 'https://photos.app.goo.gl/NfyiCAkBNMpT6LPT8';
+/* 참석여부 자동기록: Apps Script 웹앱 배포 URL(…/exec) — 비어있으면 SMS 방식으로 동작 */
+const RSVP_ENDPOINT = '';
 
 /* ============ 플레이스홀더 (사진 없을 때 자동 대체) ============ */
 function phSvg(txt, big){
@@ -430,14 +453,26 @@ document.getElementById('rsvpHideBtn').onclick = () => {
 };
 document.getElementById('rsvpMainBtn').onclick = function(){
   this.style.display = 'none';
-  document.getElementById('rsvpChoice').classList.add('on');
+  document.getElementById('rsvpForm').classList.add('on');
 };
-function sendRsvp(attend){
-  const msg = attend
-    ? '[참석 회신] 12월 8일 결혼식에 참석합니다. - 이름/인원: '
-    : '[참석 회신] 아쉽지만 참석이 어렵습니다. 축하드립니다! - 이름: ';
-  const sep = /iPhone|iPad|Macintosh/.test(navigator.userAgent) ? '&' : '?';
-  location.href = 'sms:' + GROOM_TEL + sep + 'body=' + encodeURIComponent(msg);
+function submitRsvp(attend){
+  const name = document.getElementById('rsvpName').value.trim();
+  if (!name) { toast('성함을 입력해주세요'); return; }
+  const count = document.getElementById('rsvpCount').value || 1;
+  const side = document.querySelector('input[name="rsvpSide"]:checked').value;
+  if (RSVP_ENDPOINT) {
+    fetch(RSVP_ENDPOINT, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ name, side, count, attend })
+    }).then(() => toast('전달되었습니다. 감사합니다!'))
+      .catch(() => toast('전송에 실패했습니다. 잠시 후 다시 시도해주세요'));
+  } else {
+    const msg = `[참석 회신] ${side} ${name} / ${attend ? '참석 ' + count + '명' : '불참'}`;
+    const sep = /iPhone|iPad|Macintosh/.test(navigator.userAgent) ? '&' : '?';
+    location.href = 'sms:' + GROOM_TEL + sep + 'body=' + encodeURIComponent(msg);
+  }
+  localStorage.setItem('rsvpHide', todayKey);
   rsvpOvl.style.display = 'none';
 }
 
