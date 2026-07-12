@@ -138,10 +138,14 @@
   .acc-toggle{width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;font-size:13.5px;color:var(--ink);letter-spacing:.08em}
   .acc-list{display:none;padding:6px 4px}
   .acc-group.open .acc-list{display:block}
-  .acc-item{display:flex;align-items:center;justify-content:space-between;padding:12px 6px;border-bottom:1px solid var(--line);font-size:13px;text-align:left}
+  .acc-item{padding:12px 6px;border-bottom:1px solid var(--line);font-size:13px;text-align:left}
   .acc-item:last-child{border-bottom:none}
   .acc-item .who{color:var(--sub);font-size:12px;margin-bottom:3px}
-  .copy-btn{border:1px solid var(--line);background:#f6f1e8;border-radius:8px;font-size:11.5px;padding:7px 12px;color:var(--ink);flex-shrink:0;margin-left:10px}
+  .acc-btns{display:flex;gap:6px;margin-top:9px}
+  .copy-btn{border:1px solid var(--line);background:#f6f1e8;border-radius:8px;font-size:11.5px;padding:7px 12px;color:var(--ink);flex-shrink:0}
+  .pay-btn{border:none;border-radius:8px;font-size:11.5px;padding:7px 12px;text-decoration:none;font-weight:700;cursor:pointer;font-family:inherit}
+  .pay-btn.toss{background:#3182f6;color:#fff}
+  .pay-btn.kakao{background:#fee500;color:#3d1e1e}
 
   /* ===== 공유/QR ===== */
   .share-row{display:flex;gap:10px;justify-content:center}
@@ -353,37 +357,11 @@
     </p>
     <div class="acc-group" id="accGroom">
       <button class="acc-toggle" onclick="toggleAcc('accGroom')"><span class="ticon">&#129333;&#127995;</span>신랑 측</button>
-      <div class="acc-list">
-        <div class="acc-item">
-          <div><p class="who">신랑 이현도</p><p>카카오뱅크 3333-00-0000000</p></div>
-          <button class="copy-btn" onclick="copyText('카카오뱅크 3333-00-0000000','계좌번호가 복사되었습니다')">복사</button>
-        </div>
-        <div class="acc-item">
-          <div><p class="who">아버지 이00</p><p>국민 000000-00-000000</p></div>
-          <button class="copy-btn" onclick="copyText('국민 000000-00-000000','계좌번호가 복사되었습니다')">복사</button>
-        </div>
-        <div class="acc-item">
-          <div><p class="who">어머니 장00</p><p>신한 000-000-000000</p></div>
-          <button class="copy-btn" onclick="copyText('신한 000-000-000000','계좌번호가 복사되었습니다')">복사</button>
-        </div>
-      </div>
+      <div class="acc-list"></div>
     </div>
     <div class="acc-group" id="accBride">
       <button class="acc-toggle" onclick="toggleAcc('accBride')"><span class="ticon">&#128113;&#127995;&#8205;&#9792;&#65039;</span>신부 측</button>
-      <div class="acc-list">
-        <div class="acc-item">
-          <div><p class="who">신부 심혜진</p><p>신한 110-000-000000</p></div>
-          <button class="copy-btn" onclick="copyText('신한 110-000-000000','계좌번호가 복사되었습니다')">복사</button>
-        </div>
-        <div class="acc-item">
-          <div><p class="who">아버지 심00</p><p>우리 1002-000-000000</p></div>
-          <button class="copy-btn" onclick="copyText('우리 1002-000-000000','계좌번호가 복사되었습니다')">복사</button>
-        </div>
-        <div class="acc-item">
-          <div><p class="who">어머니 인00</p><p>하나 000-000000-00000</p></div>
-          <button class="copy-btn" onclick="copyText('하나 000-000000-00000','계좌번호가 복사되었습니다')">복사</button>
-        </div>
-      </div>
+      <div class="acc-list"></div>
     </div>
   </section>
 
@@ -584,7 +562,43 @@ function toast(msg){
   setTimeout(() => el.classList.remove('on'), 2200);
 }
 
-/* ================= 계좌 아코디언 ================= */
+/* ================= 계좌 아코디언 + 송금 버튼 ================= */
+/* kakao: 카카오페이 앱에서 발급한 본인 송금코드 링크(https://qr.kakaopay.com/…)를 넣으면 버튼 표시 */
+const ACCOUNTS = {
+  accGroom: [
+    { who: '신랑 이현도', bank: '카카오뱅크', num: '3333-00-0000000', kakao: '' },
+    { who: '아버지 이00', bank: '국민',       num: '000000-00-000000', kakao: '' },
+    { who: '어머니 장00', bank: '신한',       num: '000-000-000000',   kakao: '' }
+  ],
+  accBride: [
+    { who: '신부 심혜진', bank: '신한', num: '110-000-000000',    kakao: '' },
+    { who: '아버지 심00', bank: '우리', num: '1002-000-000000',   kakao: '' },
+    { who: '어머니 인00', bank: '하나', num: '000-000000-00000',  kakao: '' }
+  ]
+};
+for (const gid in ACCOUNTS){
+  const list = document.querySelector('#' + gid + ' .acc-list');
+  ACCOUNTS[gid].forEach(a => {
+    const full = a.bank + ' ' + a.num;
+    const toss = 'supertoss://send?bank=' + encodeURIComponent(a.bank) +
+                 '&accountNo=' + a.num.replace(/-/g, '');
+    const div = document.createElement('div');
+    div.className = 'acc-item';
+    div.innerHTML =
+      '<div><p class="who"></p><p class="acct"></p></div>' +
+      '<div class="acc-btns">' +
+        '<button class="copy-btn">복사</button>' +
+        '<a class="pay-btn toss">toss 송금</a>' +
+        (a.kakao ? '<a class="pay-btn kakao" target="_blank" rel="noopener">kakaopay</a>' : '') +
+      '</div>';
+    div.querySelector('.who').textContent = a.who;
+    div.querySelector('.acct').textContent = full;
+    div.querySelector('.copy-btn').onclick = () => copyText(full, '계좌번호가 복사되었습니다');
+    div.querySelector('.toss').href = toss;
+    if (a.kakao) div.querySelector('.kakao').href = a.kakao;
+    list.appendChild(div);
+  });
+}
 function toggleAcc(id){ document.getElementById(id).classList.toggle('open'); }
 
 /* ================= QR ================= */
