@@ -620,7 +620,7 @@ function showQr(){
   let W, H, flakes = [];
   function resize(){
     W = cv.width = innerWidth; H = cv.height = innerHeight;
-    const n = Math.min(70, Math.floor(W / 8));
+    const n = Math.min(130, Math.floor(W / 4.5));
     flakes = Array.from({length: n}, () => spawn(true));
   }
   function spawn(anyY){
