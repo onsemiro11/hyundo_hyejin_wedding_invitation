@@ -150,6 +150,7 @@
   #qrHint{display:none;font-size:11.5px;color:var(--sub);margin-top:10px}
   footer{padding:44px 26px 60px;text-align:center;font-size:11px;color:#b3a895;letter-spacing:.2em}
 
+  #snow{position:fixed;inset:0;pointer-events:none;z-index:150}
   #toast{position:fixed;bottom:36px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(61,54,48,.92);color:#fff;font-size:12.5px;letter-spacing:.08em;padding:11px 22px;border-radius:24px;opacity:0;transition:.35s;pointer-events:none;z-index:300}
   #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
@@ -403,6 +404,7 @@
   <footer>HYUNDO &amp; HYEJIN — 2027. 12. 8.</footer>
 </div>
 
+<canvas id="snow"></canvas>
 <div id="toast"></div>
 
 <script>
@@ -596,6 +598,53 @@ function showQr(){
   box.style.display = 'block';
   document.getElementById('qrHint').style.display = 'block';
 }
+
+/* ================= 눈 내림 효과 ================= */
+(function(){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cv = document.getElementById('snow'), cx = cv.getContext('2d');
+  let W, H, flakes = [];
+  function resize(){
+    W = cv.width = innerWidth; H = cv.height = innerHeight;
+    const n = Math.min(70, Math.floor(W / 8));
+    flakes = Array.from({length: n}, () => spawn(true));
+  }
+  function spawn(anyY){
+    return {
+      x: Math.random() * W,
+      y: anyY ? Math.random() * H : -6,
+      r: 1 + Math.random() * 2.4,          // 반지름
+      vy: .35 + Math.random() * .8,        // 낙하 속도
+      drift: .3 + Math.random() * .7,      // 좌우 흔들림 폭
+      ph: Math.random() * Math.PI * 2,     // 위상
+      o: .35 + Math.random() * .45         // 투명도
+    };
+  }
+  let last = 0, paused = false;
+  document.addEventListener('visibilitychange', () => paused = document.hidden);
+  function frame(t){
+    requestAnimationFrame(frame);
+    if (paused) return;
+    if (t - last < 28) return;   // ~35fps로 제한 (배터리 배려)
+    last = t;
+    cx.clearRect(0, 0, W, H);
+    cx.fillStyle = '#fff';
+    for (const f of flakes){
+      f.y += f.vy;
+      f.ph += .012;
+      f.x += Math.sin(f.ph) * f.drift * .4;
+      if (f.y > H + 6) Object.assign(f, spawn(false));
+      cx.globalAlpha = f.o;
+      cx.beginPath();
+      cx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+      cx.fill();
+    }
+    cx.globalAlpha = 1;
+  }
+  addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(frame);
+})();
 
 /* ================= 스크롤 페이드인 ================= */
 const io = new IntersectionObserver(es => es.forEach(e => {
